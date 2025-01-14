@@ -1,0 +1,851 @@
+openapi: 3.0.3
+info:
+  title: Sport studio - OpenAPI specification
+  version: 0.0.1
+servers:
+  - url: https://localhost:8080/api/v1/
+    description: Dev server
+tags:
+  - name: Users
+    description: Операции с пользователями
+  - name: Subscriptions
+    description: Управление абонементами
+  - name: Workouts
+    description: Управление занятиями и расписанием
+  - name: Payments
+    description: Управление платежами
+  - name: Reviews
+    description: Управление отзывами
+  - name: Reports
+    description: Управление отчетами
+    
+paths:
+  /clients:
+    get:
+      tags:
+        - Users
+      summary: Получить список клиентов
+      operationId: getAllClients
+      security:
+        - BearerAuth: [] 
+      parameters:
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/XRequestIDHeader'
+      responses:
+        '200':
+          description: Successfully retrieved list of clients
+          headers:
+            Cache-Control:
+              description: Длительность кэширования данных клиента
+              schema:
+                type: string
+                example: private, max-age=300
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Users"
+              examples:
+                success:
+                  value:
+                    - {
+                        "id": 123504,
+                        "name": "Elina Abdrakhmanova",
+                        "email": "elina@example.com",
+                        "phone": "+79214524385"
+                      }
+                    - {
+                        "id": 223454,
+                        "name": "Timur Askarov",
+                        "email": "timuuuuur@askarov.com",
+                        "phone": "+79234524322"
+                      }
+                    - {
+                        "id": 5765676,
+                        "name": "Anastasia Spirina",
+                        "email": "anastsia@spirina.com",
+                        "phone": "+79224734371"
+                      }
+        '400':
+          description: Bad request, invalid parameters or missing required fields
+          content:
+            application/json:
+              examples:
+                bad_request:
+                  value:
+                    error: "Bad request"
+                    message: "Missing or invalid parameters"
+        '404':
+          description: Clients not found
+          content:
+            application/json:
+              examples:
+                not_found:
+                  value:
+                    error: "Not Found"
+                    message: "No clients found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              examples:
+                internal_error:
+                  value:
+                    error: "Internal Server Error"
+                    message: "Unexpected error occurred"
+          
+  /clients/{clientId}:
+    get:
+      tags:
+        - Users
+      summary: Получить данные клиента по ID
+      operationId: getClientById
+      security:
+        - BearerAuth: [] 
+      parameters:
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/XRequestIDHeader'
+        - name: clientId
+          in: path
+          required: true
+          description: The unique identifier of the client
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully retrieved the client data
+          headers:
+            Cache-Control:
+              description: Длительность кэширования данных клиента
+              schema:
+                type: string
+                example: private, max-age=300
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+            application/xml:
+              schema:
+                $ref: "#/components/schemas/User"
+        '400':
+          description: Bad request, invalid clientId format
+        '404':
+          description: Client not found with the provided ID
+        '500':
+          description: Internal server error
+  
+  /clients/{clientId}/reviews:
+    post:
+      tags:
+        - Reviews
+      summary: Добавление отзыва тренеру
+      operationId: addReview
+      security:
+        - BearerAuth: [] 
+      parameters:
+        - $ref: '#/components/parameters/XRequestIDHeader'
+        - name: clientId
+          in: path
+          required: true
+          description: The unique identifier of the client
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Review"
+          application/xml:
+            schema:
+              $ref: "#/components/schemas/Review"
+      responses:
+        '201':
+          description: Successfully added the review
+        '400':
+          description: Bad request, invalid data or missing fields
+        '404':
+          description: Client or trainer not found
+        '500':
+          description: Internal server error
+  
+  /clients/{clientId}/workouts:
+    get:
+        tags:
+          - Users
+        summary: Получить все тренировки, на которые клиент записан
+        operationId: getClientWorkouts
+        security:
+        - BearerAuth: [] 
+        parameters:
+          - $ref: '#/components/parameters/ContentTypeHeader'
+          - $ref: '#/components/parameters/AcceptHeader'
+          - $ref: '#/components/parameters/XRequestIDHeader'
+          - name: clientId
+            in: path
+            required: true
+            description: The unique identifier of the client
+            schema:
+              type: integer
+        responses:
+          '200':
+            description: Successfully retrieved the workouts the client is enrolled in
+            headers:
+              Cache-Control:
+                description: Длительность кэширования данных клиента
+                schema:
+                  type: string
+                  example: private, max-age=3600
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Workouts"
+          '404':
+            description: Client not found or client has no enrolled workouts
+          '500':
+            description: Internal server error
+  
+  /clients/{clientId}/workouts/{workoutId}/enroll:
+    post:
+      tags:
+        - Users
+      summary: Записать клиента на конкретную тренировку
+      operationId: enrollClient
+      security:
+        - BearerAuth: [] 
+      parameters:
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/XRequestIDHeader'
+        - name: clientId
+          in: path
+          required: true
+          description: The unique identifier of the client
+          schema:
+            type: integer
+        - name: workoutId
+          in: path
+          required: true
+          description: The unique identifier of the workout
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Enrollment"
+          application/xml:
+            schema:
+              $ref: "#/components/schemas/Enrollment"
+      responses:
+        '201':
+          description: Successfully enrolled the client in the workout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Enrollment"
+              examples:
+                success:
+                  value:
+                    message: "Successfully enrolled the client in workout 1"
+                    enrollment:
+                      id: 10
+                      workout_id: 1
+                      client_id: 5
+                      status: "Записан"
+                      date: "2025-01-05T09:00:00"
+        '400':
+          description: Bad request, invalid data or missing fields
+          content:
+            application/json:
+              examples:
+                bad_request:
+                  value:
+                    error: "Bad request"
+                    message: "Missing client or workout ID"
+        '404':
+          description: Client or workout not found
+          content:
+            application/json:
+              examples:
+                not_found:
+                  value:
+                    error: "Not Found"
+                    message: "Client or workout not found"
+        '409':
+          description: No available spots for the workout
+          content:
+            application/json:
+              examples:
+                conflict:
+                  value:
+                    message: "No available spots, client added to the waiting list"
+                    enrollment:
+                      id: 11
+                      workout_id: 1
+                      client_id: 5
+                      status: "В очереди"
+                      date: "2025-01-05T09:00:00"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              examples:
+                internal_error:
+                  value:
+                    error: "Internal Server Error"
+                    message: "Unexpected error occurred"
+
+  /clients/{clientId}/workouts/{workoutId}/cancel:
+    delete:
+      tags:
+        - Users
+      summary: Отменить запись клиента на тренировку
+      operationId: cancelEnrollment
+      security:
+        - BearerAuth: [] 
+      parameters:
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/XRequestIDHeader'
+        - name: clientId
+          in: path
+          required: true
+          description: The unique identifier of the client
+          schema:
+            type: integer
+        - name: workoutId
+          in: path
+          required: true
+          description: The unique identifier of the workout
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successfully canceled the client's enrollment
+          content:
+            application/json:
+              examples:
+                success:
+                  value:
+                    message: "Successfully canceled the client's enrollment"
+                    enrollment:
+                      id: 10
+                      workout_id: 1
+                      client_id: 5
+                      status: "Отменено"
+                      date: "2025-01-05T09:00:00"
+        '400':
+          description: Bad request, invalid data or missing fields
+          content:
+            application/json:
+              examples:
+                bad_request:
+                  value:
+                    error: "Bad request"
+                    message: "Invalid workoutId or clientId"
+        '404':
+          description: Client or workout not found or client not enrolled in the workout
+          content:
+            application/json:
+              examples:
+                not_found:
+                  value:
+                    error: "Not Found"
+                    message: "Client or workout not found or client not enrolled in the workout"
+        '409':
+          description: Client's enrollment status is already "Отменено"
+          content:
+            application/json:
+              examples:
+                conflict:
+                  value:
+                    message: "The enrollment status is already 'Отменено'. No further action needed."
+                    enrollment:
+                      id: 10
+                      workout_id: 1
+                      client_id: 5
+                      status: "Отменено"
+                      date: "2025-01-05T09:00:00"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              examples:
+                internal_error:
+                  value:
+                    error: "Internal Server Error"
+                    message: "Unexpected error occurred during the cancellation process"
+                    
+  /subscriptions:
+    get:
+      tags:
+        - Subscriptions
+      summary: Получить все абонементы (по дате, по типу, по клиенту)
+      operationId: getSubscriptions
+      security:
+        - BearerAuth: [] 
+      parameters:
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/XRequestIDHeader'
+        - name: client_id
+          in: query
+          description: The unique identifier of the client
+          schema:
+            type: integer
+        - name: type
+          in: query
+          description: The type of subscription (Разовое, Стандарт, Премиум)
+          schema:
+            type: string
+            enum: ['Разовое', 'Стандарт', 'Премиум']
+        - name: start_date
+          in: query
+          description: The start date of the subscription's validity period (format - YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          description: The end date of the subscription's validity period (format - YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: validity_period_min
+          in: query
+          description: Minimum validity period in days
+          schema:
+            type: integer
+        - name: validity_period_max
+          in: query
+          description: Maximum validity period in days
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successfully retrieved the list of subscriptions
+          headers:
+            Cache-Control:
+              description: Cache duration for subscription data
+              schema:
+                type: string
+                example: private, max-age=300
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subscription"
+              examples:
+                success:
+                  value:
+                    - id: 1
+                      client_id: 5
+                      type: "Премиум"
+                      price: 1500.50
+                      validity_period: 30
+                      workouts_num: 10
+                    - id: 2
+                      client_id: 3
+                      type: "Стандарт"
+                      price: 1200.00
+                      validity_period: 20
+                      workouts_num: 8
+        '400':
+          description: Bad request, invalid query parameters
+        '404':
+          description: No subscriptions found matching the filters
+        '500':
+          description: Internal server error
+          
+  /workouts:
+    get:
+      tags:
+        - Workouts
+      summary: Получить все тренировки (опционально - тренер, дата, название трени)
+      operationId: getAllWorkouts
+      security:
+        - BearerAuth: [] 
+      parameters:
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/XRequestIDHeader'
+        - name: trainerId
+          in: query
+          description: The unique identifier of the trainer to filter workouts
+          schema:
+            type: integer
+        - name: date
+          in: query
+          description: The date to filter workouts (format - yyyy-MM-dd or datetime)
+          schema:
+            type: string
+            format: date-time
+        - name: name
+          in: query
+          description: The name of the workout to filter workouts
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully retrieved the workouts
+          headers:
+            Cache-Control:
+              description: Cache duration for workout data
+              schema:
+                type: string
+                example: public, max-age=3600
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workouts"
+        '400':
+          description: Bad request, invalid filter values
+        '500':
+          description: Internal server error
+  
+  /workouts/{workoutId}:
+    get:
+      tags:
+        - Workouts
+      summary: Получить конкретную тренировку
+      operationId: getWorkoutById
+      security:
+        - BearerAuth: [] 
+      parameters:
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/XRequestIDHeader'
+        - name: workoutId
+          in: path
+          required: true
+          description: The unique identifier of the workout
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successfully retrieved the workout data
+          headers:
+            Cache-Control:
+              description: Cache duration for specific workout data
+              schema:
+                type: string
+                example: public, max-age=3600
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workout"
+        '404':
+          description: Workout not found with the provided ID
+        '500':
+          description: Internal server error
+          
+  /payments:
+    get:
+      tags:
+        - Payments
+      summary: Получить все платежи (опционально - клиент, статус, даты)
+      operationId: getPayments
+      security:
+        - BearerAuth: [] 
+      parameters:
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/XRequestIDHeader'
+        - name: client_id
+          in: query
+          description: The unique identifier of the client
+          required: false
+          schema:
+            type: integer
+            example: 10
+        - name: status
+          in: query
+          description: Payment status
+          required: false
+          schema:
+            type: string
+            enum: ['Успешно', 'Отмена', 'Ошибка']
+            example: "Успешно"
+        - name: start_date
+          in: query
+          description: Start date for filtering payments (format - YYYY-MM-DD)
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2025-01-01"
+        - name: end_date
+          in: query
+          description: End date for filtering payments (format - YYYY-MM-DD)
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2025-01-31"
+      responses:
+        '200':
+          description: Successfully retrieved filtered payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payment"
+              examples:
+                success:
+                  value:
+                    - id: 1
+                      subscription_id: 10
+                      price: 2000.00
+                      date: "2025-01-15T15:00:00"
+                      status: "Успешно"
+                    - id: 2
+                      subscription_id: 5
+                      price: 1500.50
+                      date: "2025-01-10T10:30:00"
+                      status: "Отмена"
+        '400':
+          description: Bad request, invalid parameters or missing fields
+          content:
+            application/json:
+              examples:
+                bad_request:
+                  value:
+                    error: "Bad request"
+                    message: "Invalid date range or missing parameters"
+        '401':
+          description: Unauthorized access
+          content:
+            application/json:
+              examples:
+                unauthorized:
+                  value:
+                    error: "Unauthorized"
+                    message: "Authentication token is missing or invalid"
+        '404':
+          description: Payments not found with the provided filters
+          content:
+            application/json:
+              examples:
+                not_found:
+                  value:
+                    error: "Not Found"
+                    message: "No payments found for the specified filters"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              examples:
+                internal_error:
+                  value:
+                    error: "Internal Server Error"
+                    message: "An unexpected error occurred"
+
+security:
+  - BearerAuth: [] 
+  
+components:
+  parameters:
+      ContentTypeHeader:
+        name: Content-Type
+        in: header
+        required: true
+        schema:
+          type: string
+        example: application/json
+      AcceptHeader:
+        name: Accept
+        in: header
+        required: true
+        schema:
+          type: string
+        example: application/json
+      XRequestIDHeader:
+        name: X-Request-ID
+        in: header
+        required: true
+        description: Уникальный идентификатор запроса для отслеживания
+        schema:
+          type: string
+          example: "f7e2d6f1-a2b0-47a6-9c36-d0d53e227c1b"
+        
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        surname:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+          enum: ['Администратор', 'Клиент']
+        phone:
+          type: string
+        birthday:
+          type: string
+          format: date
+        age:
+          type: integer
+        gender:
+          type: string
+          enum: ['male', 'female']
+        photo:
+          type: string
+
+    Users:
+      type: array
+      items: 
+        $ref: "#/components/schemas/User"
+    
+    Trainer:
+      type: object 
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        photo:
+          type: string  
+    
+    Trainers:
+      type: array
+      items: 
+        $ref: "#/components/schemas/User"
+        
+    Subscription:
+      type: object
+      properties:
+        id:
+          type: integer
+        client_id:
+          type: integer
+        type:
+          type: string
+          enum: ['Разовое', 'Стандарт', 'Премиум']
+        price:
+          type: number
+          format: float
+        validity_period:
+          type: integer
+          description: Срок действия (в днях)
+        workouts_num:
+          type: integer
+          description: Количество занятий
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+        subscription_id:
+          type: integer
+        price:
+          type: number
+          format: float
+        date:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: ['Успешно', 'Отмена', 'Ошибка']
+
+    Workout:
+      type: object
+      properties:
+        id:
+          type: integer
+        trainer_id:
+          type: integer
+        name:
+          type: string
+        date:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+        max_participants:
+          type: integer
+        current_participants:
+          type: integer
+          default: 0
+          
+    Workouts:
+      type: array
+      items: 
+        $ref: "#/components/schemas/Workout"
+
+    Enrollment:
+      type: object
+      properties:
+        id:
+          type: integer
+        workout_id:
+          type: integer
+        client_id:
+          type: integer
+        status:
+          type: string
+          enum: ['Записан', 'В очереди', 'Отменено']
+        date:
+          type: string
+          format: date-ti
+      required:
+        - workout_id
+        - client_id
+        - status
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+        client_id:
+          type: integer
+        trainer_id:
+          type: integer
+        content:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        date:
+          type: string
+          format: date-time
+      required:
+        - trainer_id
+        - rating
+
+    Report:
+      type: object
+      properties:
+        id:
+          type: integer
+        admin_id:
+          type: integer
+        type:
+          type: string
+          enum: ['Посещаемость', 'Финансы', 'Рейтинг']
+        date:
+          type: string
+          format: date-time
+        content:
+          type: object
+          description: JSON-данные отчета
